@@ -1,10 +1,13 @@
 import { Routes, Route } from "react-router-dom";
 
 import Login from "./pages/Login.jsx";
+import Register from "./pages/Register.jsx";
 import Dashboard from "./pages/Dashboard.jsx";
 import Patients from "./pages/Patients.jsx";
 import AddPatient from "./pages/AddPatient.jsx";
 import PatientDetails from "./pages/PatientDetails.jsx";
+
+import Staff from "./pages/Staff.jsx";
 
 import Appointments from "./pages/Appointments.jsx";
 import AddAppointment from "./pages/AddAppointment.jsx";
@@ -23,7 +26,7 @@ function App() {
     <Routes>
       {/* Login */}
       <Route path="/" element={<Login />} />
-
+      <Route path="/register" element={<Register />} />
       {/* Dashboard */}
       <Route
         path="/dashboard"
@@ -138,6 +141,17 @@ function App() {
           </ProtectedRoute>
         }
       />
+      <Route
+  path="/staff"
+  element={
+    <ProtectedRoute>
+      <Layout>
+        <Staff />
+      </Layout>
+    </ProtectedRoute>
+  }
+/>
+      
     </Routes>
   );
 }

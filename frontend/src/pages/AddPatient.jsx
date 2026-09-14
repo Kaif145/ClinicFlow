@@ -30,15 +30,11 @@ function AddPatient() {
     try {
       const token = localStorage.getItem("token");
 
-      await api.post(
-        "/patients/addpatient",
-        formData,
-        {
-          headers: {
-            Authorization: `Bearer ${token}`,
-          },
-        }
-      );
+     await api.post("/patients", formData, {
+  headers: {
+    Authorization: `Bearer ${token}`,
+  },
+});
 
       navigate("/patients");
     } catch (error) {

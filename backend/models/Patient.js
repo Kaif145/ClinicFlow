@@ -44,6 +44,15 @@ const patientSchema = new mongoose.Schema(
       phone: String,
       relation: String,
     },
+    isArchived: {
+  type: Boolean,
+  default: false,
+},
+
+archivedAt: {
+  type: Date,
+  default: null,
+},
 
     createdBy: {
       type: mongoose.Schema.Types.ObjectId,

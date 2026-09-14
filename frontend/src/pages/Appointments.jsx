@@ -3,53 +3,79 @@ import { Link } from "react-router-dom";
 import api from "../services/api";
 
 function Appointments() {
-  const [appointments, setAppointments] = useState([]);
-  const [invoices, setInvoices] = useState([]);
-  const [error, setError] = useState("");
+  const [appointments, setAppointments] =
+    useState([]);
 
-  const user = JSON.parse(localStorage.getItem("user"));
-  const token = localStorage.getItem("token");
+  const [invoices, setInvoices] =
+    useState([]);
+
+  const [activeTab, setActiveTab] =
+    useState("today");
+
+  const [error, setError] =
+    useState("");
+
+  const user = JSON.parse(
+    localStorage.getItem("user")
+  );
+
+  const token =
+    localStorage.getItem("token");
 
   const fetchAppointments = async () => {
     try {
       setError("");
 
-      // Doctor → only their own appointments
-      if (user?.role === "doctor") {
-        const response = await api.get("/appointments/my", {
-          headers: {
-            Authorization: `Bearer ${token}`,
-          },
-        });
+      let response;
 
-        setAppointments(response.data.appointments || []);
-        setInvoices([]);
+      if (user?.role === "doctor") {
+        response = await api.get(
+          "/appointments/my",
+          {
+            headers: {
+              Authorization:
+                `Bearer ${token}`,
+            },
+          }
+        );
+
+        setAppointments(
+          response.data.appointments || []
+        );
 
         return;
       }
 
-      // Admin + Receptionist
-      const [appointmentResponse, invoiceResponse] = await Promise.all([
-        api.get("/appointments", {
+      response = await api.get(
+        "/appointments",
+        {
           headers: {
-            Authorization: `Bearer ${token}`,
+            Authorization:
+              `Bearer ${token}`,
           },
-        }),
+        }
+      );
 
-        api.get("/invoices", {
+      setAppointments(
+        response.data.allAppointment || []
+      );
+
+      const invoiceResponse =
+        await api.get("/invoices", {
           headers: {
-            Authorization: `Bearer ${token}`,
+            Authorization:
+              `Bearer ${token}`,
           },
-        }),
-      ]);
+        });
 
-      setAppointments(appointmentResponse.data.allAppointment || []);
-
-      setInvoices(invoiceResponse.data.invoices || []);
+      setInvoices(
+        invoiceResponse.data.invoices || []
+      );
     } catch (error) {
-      console.log(error.response?.data);
-
-      setError(error.response?.data?.message || "Failed to load appointments");
+      setError(
+        error.response?.data?.message ||
+          "Failed to load appointments"
+      );
     }
   };
 
@@ -57,47 +83,167 @@ function Appointments() {
     fetchAppointments();
   }, []);
 
-  const changeStatus = async (id, status) => {
+  const changeStatus = async (
+    id,
+    status
+  ) => {
     try {
       await api.patch(
         `/appointments/${id}/status`,
-        {
-          status,
-        },
+        { status },
         {
           headers: {
-            Authorization: `Bearer ${token}`,
+            Authorization:
+              `Bearer ${token}`,
           },
-        },
+        }
       );
 
       await fetchAppointments();
     } catch (error) {
-      console.log(error.response?.data);
-
       alert(
-        error.response?.data?.message || "Failed to update appointment status",
+        error.response?.data?.message ||
+          "Failed to update status"
       );
     }
   };
 
+  const today =
+    new Date().toDateString();
+
+  const filteredAppointments =
+    appointments.filter(
+      (appointment) => {
+        const appointmentDay =
+          new Date(
+            appointment.date
+          ).toDateString();
+
+        if (activeTab === "today") {
+          return appointmentDay === today;
+        }
+
+        if (activeTab === "pending") {
+          return (
+            appointment.status ===
+              "scheduled" ||
+            appointment.status ===
+              "checked-in"
+          );
+        }
+
+        if (
+          activeTab === "completed"
+        ) {
+          return (
+            appointment.status ===
+            "completed"
+          );
+        }
+
+        if (activeTab === "closed") {
+          return (
+            appointment.status ===
+              "cancelled" ||
+            appointment.status ===
+              "no-show"
+          );
+        }
+
+        return true;
+      }
+    );
+
   return (
     <div>
-      <h1>Appointments</h1>
+      <div className="page-header">
+        <div>
+          <h1>Appointments</h1>
+          <p>
+            Manage clinic appointments
+            and patient queue
+          </p>
+        </div>
 
-      {/* Only Admin and Receptionist can create appointments */}
-      {(user?.role === "admin" || user?.role === "receptionist") && (
-        <Link to="/appointments/add">
-          <button>Create Appointment</button>
-        </Link>
+        {(user?.role === "admin" ||
+          user?.role ===
+            "receptionist") && (
+          <Link to="/appointments/add">
+            <button>
+              + Create Appointment
+            </button>
+          </Link>
+        )}
+      </div>
+
+      <div className="appointment-tabs">
+        <button
+          className={
+            activeTab === "today"
+              ? "active-tab"
+              : ""
+          }
+          onClick={() =>
+            setActiveTab("today")
+          }
+        >
+          Today
+        </button>
+
+        <button
+          className={
+            activeTab === "pending"
+              ? "active-tab"
+              : ""
+          }
+          onClick={() =>
+            setActiveTab("pending")
+          }
+        >
+          Pending
+        </button>
+
+        <button
+          className={
+            activeTab ===
+            "completed"
+              ? "active-tab"
+              : ""
+          }
+          onClick={() =>
+            setActiveTab("completed")
+          }
+        >
+          Completed
+        </button>
+
+        <button
+          className={
+            activeTab === "closed"
+              ? "active-tab"
+              : ""
+          }
+          onClick={() =>
+            setActiveTab("closed")
+          }
+        >
+          Closed
+        </button>
+      </div>
+
+      {error && (
+        <p className="error">
+          {error}
+        </p>
       )}
 
-      {error && <p>{error}</p>}
-
-      {appointments.length === 0 ? (
-        <p>No appointments found.</p>
+      {filteredAppointments.length ===
+      0 ? (
+        <div className="empty-state">
+          No appointments found.
+        </div>
       ) : (
-        <table border="1" cellPadding="10">
+        <table>
           <thead>
             <tr>
               <th>Token</th>
@@ -111,57 +257,160 @@ function Appointments() {
           </thead>
 
           <tbody>
-            {appointments.map((appointment) => {
-              const invoice = invoices.find(
-                (invoice) =>
-                  invoice.appointment?._id === appointment._id ||
-                  invoice.appointment === appointment._id,
-              );
+            {filteredAppointments.map(
+              (appointment) => {
+                const invoice =
+                  invoices.find(
+                    (invoice) =>
+                      invoice
+                        .appointment
+                        ?._id ===
+                        appointment._id ||
+                      invoice.appointment ===
+                        appointment._id
+                  );
 
-              return (
-                <tr key={appointment._id}>
-                  <td>{appointment.tokenNumber}</td>
+                return (
+                  <tr
+                    key={
+                      appointment._id
+                    }
+                  >
+                    <td>
+                      #
+                      {
+                        appointment.tokenNumber
+                      }
+                    </td>
 
-                  <td>{appointment.patient?.name || "-"}</td>
+                    <td>
+                      {appointment
+                        .patient
+                        ?.name || "-"}
+                    </td>
 
-                  <td>{appointment.doctor?.name || "-"}</td>
+                    <td>
+                      {appointment
+                        .doctor
+                        ?.name || "-"}
+                    </td>
 
-                  <td>{new Date(appointment.date).toLocaleString()}</td>
+                    <td>
+                      {new Date(
+                        appointment.date
+                      ).toLocaleString()}
+                    </td>
 
-                  <td>{appointment.reason || "-"}</td>
+                    <td>
+                      {appointment.reason ||
+                        "-"}
+                    </td>
 
-                  <td>
-                    <span className={`status status-${appointment.status}`}>
-                      {appointment.status}
-                    </span>
-                  </td>
+                    <td>
+                      <span
+                        className={`status status-${appointment.status}`}
+                      >
+                        {
+                          appointment.status
+                        }
+                      </span>
+                    </td>
 
-                  <td>
-                    {/* Admin / Receptionist */}
-                    {appointment.status === "scheduled" &&
-                      (user?.role === "admin" ||
-                        user?.role === "receptionist") && (
-                        <select
-                          defaultValue=""
-                          onChange={(e) => {
-                            if (e.target.value) {
-                              changeStatus(appointment._id, e.target.value);
-                            }
-                          }}
-                        >
-                          <option value="">Select Action</option>
+                    <td>
+                      {appointment.status ===
+                        "scheduled" &&
+                        (user?.role ===
+                          "admin" ||
+                          user?.role ===
+                            "receptionist") && (
+                          <select
+                            defaultValue=""
+                            onChange={(
+                              e
+                            ) => {
+                              if (
+                                e.target
+                                  .value
+                              ) {
+                                changeStatus(
+                                  appointment._id,
+                                  e
+                                    .target
+                                    .value
+                                );
+                              }
+                            }}
+                          >
+                            <option value="">
+                              Action
+                            </option>
 
-                          <option value="checked-in">Check In</option>
+                            <option value="checked-in">
+                              Check In
+                            </option>
 
-                          <option value="cancelled">Cancel Appointment</option>
+                            <option value="cancelled">
+                              Cancel
+                            </option>
 
-                          <option value="no-show">No Show</option>
-                        </select>
-                      )}
-                  </td>
-                </tr>
-              );
-            })}
+                            <option value="no-show">
+                              No Show
+                            </option>
+                          </select>
+                        )}
+
+                      {appointment.status ===
+                        "checked-in" &&
+                        user?.role ===
+                          "doctor" && (
+                          <Link
+                            to={`/visits/add/${appointment._id}`}
+                          >
+                            <button>
+                              Create Visit
+                            </button>
+                          </Link>
+                        )}
+
+                      {appointment.status ===
+                        "completed" &&
+                        !invoice &&
+                        (user?.role ===
+                          "admin" ||
+                          user?.role ===
+                            "receptionist") && (
+                          <Link
+                            to={`/invoices/add/${appointment._id}`}
+                          >
+                            <button>
+                              Create Invoice
+                            </button>
+                          </Link>
+                        )}
+
+                      {appointment.status ===
+                        "completed" &&
+                        invoice &&
+                        (user?.role ===
+                          "admin" ||
+                          user?.role ===
+                            "receptionist") && (
+                          <Link
+                            to={`/invoices/${invoice._id}`}
+                          >
+                            <button>
+                              {invoice.paymentStatus ===
+                              "paid"
+                                ? "View Payment"
+                                : "Payment Details"}
+                            </button>
+                          </Link>
+                        )}
+                    </td>
+                  </tr>
+                );
+              }
+            )}
           </tbody>
         </table>
       )}

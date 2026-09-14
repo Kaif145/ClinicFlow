@@ -22,26 +22,20 @@ function AddAppointment() {
       try {
         const token = localStorage.getItem("token");
 
-        const patientResponse = await api.get(
-          "/patients/patients",
-          {
-            headers: {
-              Authorization: `Bearer ${token}`,
-            },
-          }
-        );
+        const patientResponse = await api.get("/patients", {
+  headers: {
+    Authorization: `Bearer ${token}`,
+  },
+});
 
-        const doctorResponse = await api.get(
-          "/auth/doctors",
-          {
-            headers: {
-              Authorization: `Bearer ${token}`,
-            },
-          }
-        );
+       const doctorResponse = await api.get("/auth/doctors", {
+  headers: {
+    Authorization: `Bearer ${token}`,
+  },
+});
 
-        setPatients(patientResponse.data.patients || []);
-        setDoctors(doctorResponse.data.doctors || []);
+       setPatients(patientResponse.data.patients || []);
+setDoctors(doctorResponse.data.doctors || []);
       } catch (error) {
         setError(
           error.response?.data?.message ||

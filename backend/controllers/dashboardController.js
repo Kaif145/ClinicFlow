@@ -3,84 +3,177 @@ import Appointment from "../models/Appointment.js";
 import Invoice from "../models/Invoice.js";
 import Visit from "../models/Visit.js";
 
-export const getDashboard = async (req, res) => {
+export const getDashboard = async (
+  req,
+  res
+) => {
   try {
-    const startOfDay = new Date();
-    startOfDay.setHours(0, 0, 0, 0);
+    const now = new Date();
 
-    const endOfDay = new Date();
-    endOfDay.setHours(23, 59, 59, 999);
+    const startOfDay = new Date(
+      now.getFullYear(),
+      now.getMonth(),
+      now.getDate()
+    );
 
-    // Total patients
-    const totalPatients = await Patient.countDocuments();
+    const endOfDay = new Date(
+      now.getFullYear(),
+      now.getMonth(),
+      now.getDate(),
+      23,
+      59,
+      59,
+      999
+    );
 
-    // Today's appointments
-    const todayAppointments = await Appointment.countDocuments({
-      date: {
-        $gte: startOfDay,
-        $lte: endOfDay,
-      },
+    const startOfMonth = new Date(
+      now.getFullYear(),
+      now.getMonth(),
+      1
+    );
+
+    const totalPatients =
+      await Patient.countDocuments({
+        isArchived: false,
+      });
+
+    const todayAppointments =
+      await Appointment.countDocuments({
+        date: {
+          $gte: startOfDay,
+          $lte: endOfDay,
+        },
+      });
+
+    const checkedInPatients =
+      await Appointment.countDocuments({
+        date: {
+          $gte: startOfDay,
+          $lte: endOfDay,
+        },
+        status: "checked-in",
+      });
+
+    const completedToday =
+      await Appointment.countDocuments({
+        date: {
+          $gte: startOfDay,
+          $lte: endOfDay,
+        },
+        status: "completed",
+      });
+
+    const pendingAppointments =
+      await Appointment.countDocuments({
+        status: {
+          $in: [
+            "scheduled",
+            "checked-in",
+          ],
+        },
+      });
+
+    const invoices =
+      await Invoice.find();
+
+    let todayRevenue = 0;
+    let monthlyRevenue = 0;
+    let outstandingAmount = 0;
+
+    invoices.forEach((invoice) => {
+      outstandingAmount +=
+        invoice.totalAmount -
+        invoice.paidAmount;
+
+      if (
+        invoice.payments &&
+        invoice.payments.length > 0
+      ) {
+        invoice.payments.forEach(
+          (payment) => {
+            const paymentDate =
+              new Date(
+                payment.paidAt
+              );
+
+            if (
+              paymentDate >=
+                startOfDay &&
+              paymentDate <= endOfDay
+            ) {
+              todayRevenue +=
+                payment.amount;
+            }
+
+            if (
+              paymentDate >=
+              startOfMonth
+            ) {
+              monthlyRevenue +=
+                payment.amount;
+            }
+          }
+        );
+      } else {
+        // fallback for old invoices
+        if (
+          invoice.paidAmount > 0
+        ) {
+          const created =
+            new Date(
+              invoice.createdAt
+            );
+
+          if (
+            created >= startOfDay &&
+            created <= endOfDay
+          ) {
+            todayRevenue +=
+              invoice.paidAmount;
+          }
+
+          if (
+            created >= startOfMonth
+          ) {
+            monthlyRevenue +=
+              invoice.paidAmount;
+          }
+        }
+      }
     });
 
-    // Checked-in patients
-    const checkedInPatients = await Appointment.countDocuments({
-      date: {
-        $gte: startOfDay,
-        $lte: endOfDay,
-      },
-      status: "checked-in",
-    });
+    const recentAppointments =
+      await Appointment.find({
+        date: {
+          $gte: startOfDay,
+          $lte: endOfDay,
+        },
+      })
+        .populate(
+          "patient",
+          "name phone"
+        )
+        .populate(
+          "doctor",
+          "name"
+        )
+        .sort({
+          tokenNumber: 1,
+        });
 
-    // Today's completed visits
-    const completedVisits = await Visit.countDocuments({
-      createdAt: {
-        $gte: startOfDay,
-        $lte: endOfDay,
-      },
-    });
-
-    // Today's invoices
-    const todayInvoices = await Invoice.find({
-      createdAt: {
-        $gte: startOfDay,
-        $lte: endOfDay,
-      },
-    });
-
-    // Today's revenue
-    const todayRevenue = todayInvoices.reduce((total, invoice) => {
-      return total + invoice.paidAmount;
-    }, 0);
-
-    // All invoices for pending payments
-    const invoices = await Invoice.find();
-
-    const pendingPayments = invoices.reduce((total, invoice) => {
-      return total + (invoice.totalAmount - invoice.paidAmount);
-    }, 0);
-
-    // Today's appointment queue
-    const appointmentQueue = await Appointment.find({
-      date: {
-        $gte: startOfDay,
-        $lte: endOfDay,
-      },
-    })
-      .populate("patient", "name phone")
-      .populate("doctor", "name")
-      .sort({ tokenNumber: 1 });
-
-    res.status(200).json({
+    return res.status(200).json({
       totalPatients,
       todayAppointments,
       checkedInPatients,
-      completedVisits,
+      completedToday,
+      pendingAppointments,
       todayRevenue,
-      pendingPayments,
-      appointmentQueue,
+      monthlyRevenue,
+      outstandingAmount,
+      recentAppointments,
     });
   } catch (error) {
-    res.status(500).json({
+    return res.status(500).json({
       message: "Server error",
       error: error.message,
     });

@@ -9,7 +9,7 @@ function Patients() {
     try {
       const token = localStorage.getItem("token");
 
-      const response = await api.get("/patients/patients", {
+      const response = await api.get("/patients", {
         headers: {
           Authorization: `Bearer ${token}`,
         },
@@ -27,30 +27,27 @@ function Patients() {
 
   const user = JSON.parse(localStorage.getItem("user"));
 
-const deletePatient = async (id) => {
-  const confirmDelete = window.confirm(
-    "Are you sure you want to delete this patient?"
-  );
-
-  if (!confirmDelete) return;
-
-  try {
-    const token = localStorage.getItem("token");
-
-    await api.delete(`/patients/${id}`, {
-      headers: {
-        Authorization: `Bearer ${token}`,
-      },
-    });
-
-    await fetchPatients();
-  } catch (error) {
-    alert(
-      error.response?.data?.message ||
-        "Failed to delete patient"
+  const deletePatient = async (id) => {
+    const confirmDelete = window.confirm(
+      "Are you sure you want to delete this patient?",
     );
-  }
-};
+
+    if (!confirmDelete) return;
+
+    try {
+      const token = localStorage.getItem("token");
+
+      await api.delete(`/patients/${id}`, {
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      });
+
+      await fetchPatients();
+    } catch (error) {
+      alert(error.response?.data?.message || "Failed to delete patient");
+    }
+  };
   return (
     <div>
       <h1>Patients</h1>
@@ -83,19 +80,17 @@ const deletePatient = async (id) => {
                 <td>{patient.email || "-"}</td>
                 <td>{patient.gender || "-"}</td>
                 <td>{patient.bloodGroup || "-"}</td>
-                  <td>
-          <Link to={`/patients/${patient._id}`}>
-            <button>View</button>
-          </Link>
+                <td>
+                  <Link to={`/patients/${patient._id}`}>
+                    <button>View</button>
+                  </Link>
 
-          {user?.role === "admin" && (
-            <button
-              onClick={() => deletePatient(patient._id)}
-            >
-              Delete
-            </button>
-          )}
-        </td>
+                  {user?.role === "admin" && (
+                    <button onClick={() => deletePatient(patient._id)}>
+                      Delete
+                    </button>
+                  )}
+                </td>
               </tr>
             ))}
           </tbody>

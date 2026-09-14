@@ -1,5 +1,7 @@
+import Appointment from "../models/Appointment.js";
+import Visit from "../models/Visit.js";
+import Invoice from "../models/Invoice.js";
 import Patient from "../models/Patient.js";
-
 // Create Patient
 export const createPatient = async (req, res) => {
   try {
@@ -20,44 +22,61 @@ export const createPatient = async (req, res) => {
       });
     }
 
-    const patient = await Patient.create({
+    const patientData = {
       name,
       phone,
-      email,
-      dateOfBirth,
-      gender,
-      address,
-      bloodGroup,
-      emergencyContact,
       createdBy: req.user.userId,
-    });
+    };
 
-    res.status(201).json({
+    // Only add optional fields when they actually contain data
+    if (email) patientData.email = email;
+    if (dateOfBirth) patientData.dateOfBirth = dateOfBirth;
+    if (gender) patientData.gender = gender;
+    if (address) patientData.address = address;
+    if (bloodGroup) patientData.bloodGroup = bloodGroup;
+
+    if (
+      emergencyContact &&
+      (emergencyContact.name ||
+        emergencyContact.phone ||
+        emergencyContact.relation)
+    ) {
+      patientData.emergencyContact = emergencyContact;
+    }
+
+    const patient = await Patient.create(patientData);
+
+    return res.status(201).json({
       message: "Patient created successfully",
       patient,
     });
   } catch (error) {
-    res.status(500).json({
-      message: "Server error",
-      error: error.message,
+    console.log("CREATE PATIENT ERROR:", error);
+
+    return res.status(400).json({
+      message: error.message,
     });
   }
 };
 
+
 // Get all patients
 export const getPatients = async (req, res) => {
   try {
-    const patients = await Patient.find()
+    const patients = await Patient.find({
+      isArchived: { $ne: true },
+    })
       .populate("createdBy", "name role")
       .sort({ createdAt: -1 });
 
-    res.status(200).json({
+    return res.status(200).json({
       patients,
     });
   } catch (error) {
-    res.status(500).json({
-      message: "Server error",
-      error: error.message,
+    console.log("GET PATIENT ERROR:", error);
+
+    return res.status(500).json({
+      message: error.message,
     });
   }
 };
@@ -104,9 +123,16 @@ export const updatePatient = async (req, res) => {
     });
   }
 };
-export const deletePatient = async (req, res) => {
+export const deletePatientCompletely = async (
+  req,
+  res
+) => {
   try {
-    const patient = await Patient.findByIdAndDelete(req.params.id);
+    const patientId = req.params.id;
+
+    const patient = await Patient.findById(
+      patientId
+    );
 
     if (!patient) {
       return res.status(404).json({
@@ -114,11 +140,40 @@ export const deletePatient = async (req, res) => {
       });
     }
 
-    res.status(200).json({
-      message: "Patient deleted successfully",
+    const appointments =
+      await Appointment.find({
+        patient: patientId,
+      }).select("_id");
+
+    const appointmentIds =
+      appointments.map(
+        (appointment) => appointment._id
+      );
+
+    await Visit.deleteMany({
+      patient: patientId,
+    });
+
+    await Invoice.deleteMany({
+      patient: patientId,
+    });
+
+    await Appointment.deleteMany({
+      patient: patientId,
+    });
+
+    await Patient.findByIdAndDelete(
+      patientId
+    );
+
+    return res.status(200).json({
+      message:
+        "Patient and related history deleted permanently",
+      deletedAppointments:
+        appointmentIds.length,
     });
   } catch (error) {
-    res.status(500).json({
+    return res.status(500).json({
       message: "Server error",
       error: error.message,
     });
