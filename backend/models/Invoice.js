@@ -2,6 +2,10 @@ import mongoose from "mongoose";
 
 const invoiceSchema = new mongoose.Schema(
   {
+    invoiceNumber: {
+      type: String,
+      unique: true,
+    },
     patient: {
       type: mongoose.Schema.Types.ObjectId,
       ref: "Patient",
@@ -90,8 +94,21 @@ const invoiceSchema = new mongoose.Schema(
   },
   {
     timestamps: true,
-  }
+  },
 );
+invoiceSchema.pre("validate", function (next) {
+  if (!this.invoiceNumber) {
+    const year = new Date().getFullYear();
+    const code = this._id
+      .toString()
+      .slice(-6)
+      .toUpperCase();
+
+    this.invoiceNumber = `INV-${year}-${code}`;
+  }
+
+  next();
+});
 
 const Invoice = mongoose.model("Invoice", invoiceSchema);
 
