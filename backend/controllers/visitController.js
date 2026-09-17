@@ -104,3 +104,30 @@ export const getPatientVisits = async (req, res) => {
     });
   }
 };
+
+export const getUpcomingFollowUps = async (req, res) => {
+  try {
+    const today = new Date();
+
+    const next7Days = new Date();
+    next7Days.setDate(today.getDate() + 7);
+
+    const visits = await Visit.find({
+      followUpDate: {
+        $gte: today,
+        $lte: next7Days,
+      },
+    })
+      .populate("patient", "name phone")
+      .populate("doctor", "name")
+      .sort({ followUpDate: 1 });
+
+    res.status(200).json({
+      followUps: visits,
+    });
+  } catch (error) {
+    res.status(500).json({
+      message: error.message,
+    });
+  }
+};

@@ -7,7 +7,9 @@ import Dashboard from "./pages/Dashboard.jsx";
 import Patients from "./pages/Patients.jsx";
 import AddPatient from "./pages/AddPatient.jsx";
 import PatientDetails from "./pages/PatientDetails.jsx";
-
+import FollowUps from "./pages/FollowUps.jsx";
+import CreatePrescription from "./pages/CreatePrescription.jsx";
+import ViewPrescription from "./pages/ViewPrescription.jsx";
 import Staff from "./pages/Staff.jsx";
 
 import Appointments from "./pages/Appointments.jsx";
@@ -39,7 +41,36 @@ function App() {
           </ProtectedRoute>
         }
       />
-
+      <Route
+  path="/prescriptions/:id"
+  element={
+    <ProtectedRoute>
+      <Layout>
+        <ViewPrescription />
+      </Layout>
+    </ProtectedRoute>
+  }
+/>
+<Route
+  path="/follow-ups"
+  element={
+    <ProtectedRoute>
+      <Layout>
+        <FollowUps />
+      </Layout>
+    </ProtectedRoute>
+  }
+/>
+<Route
+  path="/prescriptions/add/:visitId"
+  element={
+    <ProtectedRoute>
+      <Layout>
+        <CreatePrescription />
+      </Layout>
+    </ProtectedRoute>
+  }
+/>
       {/* Patients */}
       <Route
         path="/patients"

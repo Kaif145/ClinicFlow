@@ -26,20 +26,22 @@ function AddVisit() {
     const token = localStorage.getItem("token");
 
     try {
-      await api.post(
-        "/visits",
-        {
-          appointmentId,
-          ...formData,
-        },
-        {
-          headers: {
-            Authorization: `Bearer ${token}`,
-          },
-        }
-      );
+      const response = await api.post(
+  "/visits",
+  {
+    appointmentId,
+    ...formData,
+  },
+  {
+    headers: {
+      Authorization: `Bearer ${token}`,
+    },
+  }
+);
 
-      navigate("/appointments");
+const visitId = response.data.visit._id;
+
+navigate(`/prescriptions/add/${visitId}`);
     } catch (error) {
       alert(
         error.response?.data?.message ||

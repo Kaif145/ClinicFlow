@@ -86,6 +86,12 @@ function Sidebar() {
               >
                 Invoices
               </NavLink>
+              <NavLink
+                  to="/follow-ups"
+                  className={linkClass}
+                >
+                  Follow-ups
+                </NavLink>
             </>
           )}
 

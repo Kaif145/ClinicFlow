@@ -1,10 +1,10 @@
 import express from "express";
 
 import {
-  createVisit,
-  getPatientVisits,
-  getUpcomingFollowUps
-} from "../controllers/visitController.js";
+  createPrescription,
+  getPatientPrescriptions,
+  getPrescriptionById,
+} from "../controllers/prescriptionController.js";
 
 import { protect } from "../middleware/authMiddleware.js";
 import { allowRoles } from "../middleware/roleMiddleware.js";
@@ -15,21 +15,20 @@ router.post(
   "/",
   protect,
   allowRoles("doctor"),
-  createVisit
+  createPrescription
+);
+router.get(
+  "/:id",
+  protect,
+  allowRoles("doctor", "admin"),
+  getPrescriptionById
 );
 
 router.get(
   "/patient/:patientId",
   protect,
   allowRoles("doctor", "admin"),
-  getPatientVisits
-);
-
-router.get(
-  "/follow-ups",
-  protect,
-  allowRoles("admin", "receptionist", "doctor"),
-  getUpcomingFollowUps
+  getPatientPrescriptions
 );
 
 export default router;
