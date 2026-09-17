@@ -44,56 +44,73 @@ function Login() {
   }
 };
 
-  return (
-    <div className="auth-page">
-      <div className="auth-card">
-        <h1>ClinicFlow</h1>
+ return (
+  <div className="min-vh-100 d-flex align-items-center justify-content-center bg-light">
+    <div
+      className="card border-0 shadow-sm p-4"
+      style={{ width: "100%", maxWidth: "420px" }}
+    >
+      <div className="text-center mb-4">
+        <h2 className="fw-bold text-primary">
+          ClinicFlow
+        </h2>
 
-        <h2>Welcome Back</h2>
-
-        <p>
-          Login to manage your clinic
+        <p className="text-muted mb-0">
+          Sign in to your account
         </p>
+      </div>
 
-        {error && (
-          <p className="error">{error}</p>
-        )}
+      {error && (
+        <div className="alert alert-danger">
+          {error}
+        </div>
+      )}
 
-        <form onSubmit={handleLogin}>
+      <form onSubmit={handleLogin}>
+        <div className="mb-3">
+          <label className="form-label">
+            Email
+          </label>
+
           <input
             type="email"
-            placeholder="Email"
+            className="form-control"
+            placeholder="Enter email"
             value={email}
             onChange={(e) =>
               setEmail(e.target.value)
             }
             required
           />
+        </div>
+
+        <div className="mb-3">
+          <label className="form-label">
+            Password
+          </label>
 
           <input
             type="password"
-            placeholder="Password"
+            className="form-control"
+            placeholder="Enter password"
             value={password}
             onChange={(e) =>
               setPassword(e.target.value)
             }
             required
           />
+        </div>
 
-          <button type="submit">
-            Login
-          </button>
-        </form>
-
-        <p>
-          New clinic?{" "}
-          <Link to="/register">
-            Create account
-          </Link>
-        </p>
-      </div>
+        <button
+          type="submit"
+          className="btn btn-primary w-100"
+        >
+          Login
+        </button>
+      </form>
     </div>
-  );
+  </div>
+);
 }
 
 export default Login;

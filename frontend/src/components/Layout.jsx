@@ -1,27 +1,15 @@
-import Sidebar from "./Sidebar";
+import Sidebar from "./Sidebar.jsx";
 
 function Layout({ children }) {
   return (
-    <div
-      style={{
-        display: "flex",
-        minHeight: "100vh",
-      }}
-    >
-      <div
-        style={{
-          width: "220px",
-          padding: "20px",
-          borderRight: "1px solid #ccc",
-        }}
-      >
-        <Sidebar />
-      </div>
+    <div className="d-flex min-vh-100 bg-light">
+      <Sidebar />
 
       <main
+        className="flex-grow-1 p-3 p-md-4"
         style={{
-          flex: 1,
-          padding: "30px",
+          marginLeft: "250px",
+          minWidth: 0,
         }}
       >
         {children}
