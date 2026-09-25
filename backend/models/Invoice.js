@@ -107,7 +107,6 @@ invoiceSchema.pre("validate", function (next) {
     this.invoiceNumber = `INV-${year}-${code}`;
   }
 
-  next();
 });
 
 const Invoice = mongoose.model("Invoice", invoiceSchema);

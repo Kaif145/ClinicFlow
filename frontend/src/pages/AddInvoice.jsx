@@ -18,27 +18,27 @@ function AddInvoice() {
       const token = localStorage.getItem("token");
 
       await api.post(
-        "/invoices",
-        {
-          appointmentId,
+  "/invoices",
+  {
+    appointmentId,
 
-          services: [
-            {
-              name: serviceName,
-              price: Number(price),
-              quantity: 1,
-            },
-          ],
+    services: [
+      {
+        name: serviceName,
+        price: Number(price),
+        quantity: 1,
+      },
+    ],
 
-          paidAmount: Number(paidAmount),
-          paymentMethod,
-        },
-        {
-          headers: {
-            Authorization: `Bearer ${token}`,
-          },
-        }
-      );
+    paidAmount: Number(paidAmount || 0),
+    paymentMethod,
+  },
+  {
+    headers: {
+      Authorization: `Bearer ${token}`,
+    },
+  }
+);
 
       navigate("/appointments");
     } catch (error) {

@@ -42,3 +42,21 @@ body {
     display: block !important;
   }
 }
+@media print {
+  body * {
+    visibility: hidden;
+  }
+
+  .prescription-print-area,
+  .prescription-print-area * {
+    visibility: visible;
+  }
+
+  .prescription-print-area {
+    position: absolute;
+    left: 0;
+    top: 0;
+    width: 100%;
+    background: white;
+  }
+}

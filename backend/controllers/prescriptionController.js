@@ -94,21 +94,23 @@ export const getPatientPrescriptions = async (
     });
   }
 };
-export const getPrescriptionById = async (
-  req,
-  res
-) => {
+export const getPrescriptionById = async (req, res) => {
   try {
-    const prescription =
-      await Prescription.findById(req.params.id)
-        .populate(
-          "patient",
-          "name phone gender dateOfBirth"
-        )
-        .populate(
-          "doctor",
-          "name email phone"
-        );
+    const { id } = req.params;
+
+    const prescription = await Prescription.findById(id)
+      .populate(
+        "patient",
+        "name phone gender dateOfBirth bloodGroup address"
+      )
+      .populate(
+        "doctor",
+        "name email phone"
+      )
+      .populate(
+        "visit",
+        "complaint consultationNotes treatment followUpDate createdAt"
+      );
 
     if (!prescription) {
       return res.status(404).json({
@@ -120,6 +122,8 @@ export const getPrescriptionById = async (
       prescription,
     });
   } catch (error) {
+    console.log("GET PRESCRIPTION ERROR:", error);
+
     return res.status(500).json({
       message: error.message,
     });

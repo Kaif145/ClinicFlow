@@ -1,8 +1,9 @@
 import Appointment from "../models/Appointment.js";
 import Patient from "../models/Patient.js";
 import User from "../models/User.js";
-
+import DoctorAvailability from "../models/DoctorAvailability.js";
 // Create Appointment
+
 export const createAppointment = async (req, res) => {
   try {
     const {
@@ -12,48 +13,17 @@ export const createAppointment = async (req, res) => {
       reason,
     } = req.body;
 
-    // 1. Check required fields
-    if (!patientId || !doctorId || !date) {
-      return res.status(400).json({
-        message: "Patient, doctor and date are required",
-      });
-    }
-
-    // 2. Check patient exists
-    const patient = await Patient.findById(patientId);
-
-    if (!patient) {
-      return res.status(404).json({
-        message: "Patient not found",
-      });
-    }
-
-    // 3. Check doctor exists
-    const doctor = await User.findById(doctorId);
-
-    if (!doctor) {
-      return res.status(404).json({
-        message: "Doctor not found",
-      });
-    }
-
-    // 4. Make sure selected user is actually a doctor
-    if (doctor.role !== "doctor") {
-      return res.status(400).json({
-        message: "Selected user is not a doctor",
-      });
-    }
-
+    // 1. Convert date
     const appointmentDate = new Date(date);
 
-    // 5. Create start and end of the appointment day
+    // 2. Start and end of selected day
     const startOfDay = new Date(appointmentDate);
     startOfDay.setHours(0, 0, 0, 0);
 
     const endOfDay = new Date(appointmentDate);
     endOfDay.setHours(23, 59, 59, 999);
 
-    // 6. Find the latest token for this doctor on this day
+    // 3. Find last appointment for same doctor + same day
     const lastAppointment = await Appointment.findOne({
       doctor: doctorId,
       date: {
@@ -62,37 +32,93 @@ export const createAppointment = async (req, res) => {
       },
     }).sort({ tokenNumber: -1 });
 
-    // 7. Generate next token
+    // 4. Generate token
     const tokenNumber = lastAppointment
       ? lastAppointment.tokenNumber + 1
       : 1;
 
-    // 8. Create appointment
-    const appointment = await Appointment.create({
-      patient: patientId,
-      doctor: doctorId,
-      date: appointmentDate,
-      tokenNumber,
-      reason,
-      createdBy: req.user.userId,
-    });
+    // 5. Get doctor availability
+    const dayOfWeek = appointmentDate.getDay();
 
-    // 9. Return result
-    res.status(201).json({
-      message: "Appointment created successfully",
-      appointment,
-    });
-  } catch (error) {
-    // Duplicate token protection
-    if (error.code === 11000) {
-      return res.status(409).json({
-        message: "Appointment token conflict. Please try again.",
+    const availability =
+      await DoctorAvailability.findOne({
+        doctor: doctorId,
+        dayOfWeek,
+        isActive: true,
+      });
+
+    if (!availability) {
+      return res.status(400).json({
+        message:
+          "Doctor is not available on this day",
       });
     }
 
-    res.status(500).json({
-      message: "Server error",
-      error: error.message,
+    // 6. Start time
+    const [startHour, startMinute] =
+      availability.startTime
+        .split(":")
+        .map(Number);
+
+    const startMinutes =
+      startHour * 60 + startMinute;
+
+    // 7. Estimate patient time
+    const estimatedMinutes =
+      startMinutes +
+      (tokenNumber - 1) *
+        availability.averageConsultationMinutes;
+
+    // 8. Check doctor end time
+    const [endHour, endMinute] =
+      availability.endTime
+        .split(":")
+        .map(Number);
+
+    const endMinutes =
+      endHour * 60 + endMinute;
+
+    if (estimatedMinutes >= endMinutes) {
+      return res.status(400).json({
+        message:
+          "Doctor's queue is full for this day",
+      });
+    }
+
+    // 9. Convert estimated minutes → HH:MM
+    const estimatedHour = Math.floor(
+      estimatedMinutes / 60
+    );
+
+    const estimatedMinute =
+      estimatedMinutes % 60;
+
+    const estimatedTime = `${String(
+      estimatedHour
+    ).padStart(2, "0")}:${String(
+      estimatedMinute
+    ).padStart(2, "0")}`;
+
+    // 10. Create appointment
+    const appointment =
+      await Appointment.create({
+        patient: patientId,
+        doctor: doctorId,
+        date: appointmentDate,
+        tokenNumber,
+        estimatedTime,
+        reason,
+        createdBy: req.user.userId,
+      });
+
+    return res.status(201).json({
+      message:
+        "Appointment created successfully",
+      appointment,
+    });
+  } catch (error) {
+    return res.status(500).json({
+      message: error.message,
     });
   }
 };

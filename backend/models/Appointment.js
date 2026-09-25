@@ -45,6 +45,9 @@ const appointmentSchema = new mongoose.Schema(
       ref: "User",
       required: true,
     },
+    estimatedTime: {
+      type: String,
+    },
   },
   {
     timestamps: true,

@@ -7,16 +7,26 @@ export const createInvoice = async (req, res) => {
       appointmentId,
       services,
       paidAmount = 0,
-      paymentMethod,
+      paymentMethod = "cash",
     } = req.body;
 
-    if (!appointmentId || !services || services.length === 0) {
+    // Basic validation
+    if (!appointmentId) {
       return res.status(400).json({
-        message: "Appointment and services are required",
+        message: "Appointment ID is required",
       });
     }
 
-    const appointment = await Appointment.findById(appointmentId);
+    if (!services || services.length === 0) {
+      return res.status(400).json({
+        message: "At least one service is required",
+      });
+    }
+
+    // Find appointment
+    const appointment = await Appointment.findById(
+      appointmentId
+    );
 
     if (!appointment) {
       return res.status(404).json({
@@ -24,9 +34,11 @@ export const createInvoice = async (req, res) => {
       });
     }
 
+    // Appointment should be completed
     if (appointment.status !== "completed") {
       return res.status(400).json({
-        message: "Appointment must be completed before billing",
+        message:
+          "Appointment must be completed before creating invoice",
       });
     }
 
@@ -36,54 +48,105 @@ export const createInvoice = async (req, res) => {
     });
 
     if (existingInvoice) {
-      return res.status(400).json({
-        message: "Invoice already exists for this appointment",
+      return res.status(409).json({
+        message:
+          "Invoice already exists for this appointment",
       });
     }
 
     // Calculate total on backend
-    const totalAmount = services.reduce((total, service) => {
-      return total + service.price * (service.quantity || 1);
-    }, 0);
+    const totalAmount = services.reduce(
+      (total, service) => {
+        const price = Number(service.price);
+        const quantity = Number(
+          service.quantity || 1
+        );
 
-    if (paidAmount > totalAmount) {
+        return total + price * quantity;
+      },
+      0
+    );
+
+    const payment = Number(paidAmount);
+
+    if (payment < 0) {
       return res.status(400).json({
-        message: "Paid amount cannot be greater than total amount",
+        message: "Paid amount cannot be negative",
       });
     }
 
+    if (payment > totalAmount) {
+      return res.status(400).json({
+        message:
+          "Paid amount cannot exceed total amount",
+      });
+    }
+
+    // Determine status
     let paymentStatus = "unpaid";
 
-    if (paidAmount === totalAmount && totalAmount > 0) {
+    if (payment === totalAmount && totalAmount > 0) {
       paymentStatus = "paid";
-    } else if (paidAmount > 0) {
+    } else if (payment > 0) {
       paymentStatus = "partial";
     }
 
+    // Initial payment history
+    const payments = [];
+
+    if (payment > 0) {
+      payments.push({
+        amount: payment,
+        method: paymentMethod,
+        receivedBy: req.user.userId,
+      });
+    }
+
+    // Create invoice
     const invoice = await Invoice.create({
       patient: appointment.patient,
       appointment: appointment._id,
       services,
       totalAmount,
-      paidAmount,
+      paidAmount: payment,
       paymentStatus,
-      paymentMethod,
+      payments,
       createdBy: req.user.userId,
     });
 
-    const populatedInvoice = await Invoice.findById(invoice._id)
-      .populate("patient", "name phone")
-      .populate("appointment", "date tokenNumber")
-      .populate("createdBy", "name role");
+    const populatedInvoice =
+      await Invoice.findById(invoice._id)
+        .populate("patient", "name phone email")
+        .populate(
+          "appointment",
+          "date tokenNumber status"
+        )
+        .populate("createdBy", "name role")
+        .populate(
+          "payments.receivedBy",
+          "name role"
+        );
 
-    res.status(201).json({
+    return res.status(201).json({
       message: "Invoice created successfully",
       invoice: populatedInvoice,
     });
   } catch (error) {
-    res.status(500).json({
-      message: "Server error",
-      error: error.message,
+    console.log(
+      "CREATE INVOICE ERROR:",
+      error
+    );
+
+    // Duplicate unique index
+    if (error.code === 11000) {
+      return res.status(409).json({
+        message:
+          "Invoice already exists for this appointment",
+      });
+    }
+
+    return res.status(500).json({
+      message: error.message,
     });
   }
 };
