@@ -49,7 +49,6 @@ export const registerUser = async (req, res) => {
   }
 };
 
-
 // LOGIN
 export const loginUser = async (req, res) => {
   try {
@@ -63,10 +62,7 @@ export const loginUser = async (req, res) => {
       });
     }
 
-    const validPassword = await bcrypt.compare(
-      password,
-      user.password
-    );
+    const validPassword = await bcrypt.compare(password, user.password);
 
     if (!validPassword) {
       return res.status(401).json({
@@ -82,7 +78,7 @@ export const loginUser = async (req, res) => {
       process.env.JWT_SECRET,
       {
         expiresIn: "1d",
-      }
+      },
     );
 
     return res.status(200).json({
@@ -103,7 +99,6 @@ export const loginUser = async (req, res) => {
     });
   }
 };
-
 
 // ADMIN CREATES DOCTOR / RECEPTIONIST
 export const createStaff = async (req, res) => {
@@ -150,7 +145,6 @@ export const createStaff = async (req, res) => {
     });
   }
 };
-
 
 // GET DOCTORS
 export const getDoctors = async (req, res) => {
