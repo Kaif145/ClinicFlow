@@ -89,9 +89,9 @@ setDoctors(doctorResponse.data.doctors || []);
     );
   }
 };
-useEffect(() => {
-  loadDoctorInfo();
-}, [formData.doctorId, formData.date]);
+  useEffect(() => {
+    loadDoctorInfo();
+  }, [formData.doctorId, formData.date]);
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -99,13 +99,20 @@ useEffect(() => {
     try {
       const token = localStorage.getItem("token");
 
-      await api.post("/appointments", formData, {
-        headers: {
-          Authorization: `Bearer ${token}`,
-        },
-      });
+      const response = await api.post(
+  "/appointments",
+  formData,
+  {
+    headers: {
+      Authorization: `Bearer ${token}`,
+    },
+  }
+);
 
-      navigate("/appointments");
+const appointmentId =
+  response.data.appointment._id;
+
+navigate(`/appointments/${appointmentId}/slip`);
     } catch (error) {
       setError(
         error.response?.data?.message ||

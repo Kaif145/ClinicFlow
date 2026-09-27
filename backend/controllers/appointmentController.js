@@ -243,3 +243,34 @@ export const updateAppointmentStatus = async (req, res) => {
     });
   }
 };
+
+
+export const getAppointmentById = async (req, res) => {
+  try {
+    const appointment = await Appointment.findById(
+      req.params.id
+    )
+      .populate(
+        "patient",
+        "name phone email gender"
+      )
+      .populate(
+        "doctor",
+        "name phone email"
+      );
+
+    if (!appointment) {
+      return res.status(404).json({
+        message: "Appointment not found",
+      });
+    }
+
+    return res.status(200).json({
+      appointment,
+    });
+  } catch (error) {
+    return res.status(500).json({
+      message: error.message,
+    });
+  }
+};

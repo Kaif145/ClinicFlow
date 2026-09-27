@@ -1,5 +1,5 @@
 import express from "express";
-import { createAppointment ,getMyAppointments,getAllAppointments,updateAppointmentStatus} from "../controllers/appointmentController.js";
+import { createAppointment ,getMyAppointments,getAllAppointments,updateAppointmentStatus,getAppointmentById} from "../controllers/appointmentController.js";
 import { protect } from "../middleware/authMiddleware.js";
 import { allowRoles } from "../middleware/roleMiddleware.js";
 
@@ -10,6 +10,12 @@ router.post(
   protect,
   allowRoles("admin", "receptionist"),
   createAppointment
+);
+router.get(
+  "/:id",
+  protect,
+  allowRoles("admin", "receptionist", "doctor"),
+  getAppointmentById
 );
 
 // ✅ Add this
